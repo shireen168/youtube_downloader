@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "youtube-downloader"
+version = "0.1.0"
+description = "Simple YouTube playlist downloader"
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+yt-dlp = "^2024.11.18"
+tqdm = "^4.66.1"
+tk = "^0.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
