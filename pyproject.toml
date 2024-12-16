@@ -2,7 +2,7 @@
 name = "youtube-downloader"
 version = "0.1.0"
 description = "Simple YouTube playlist downloader"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Shireen <shireenlowyk@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
