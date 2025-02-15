@@ -229,7 +229,7 @@ def main():
                 if download_data and video_title:
                     filename = f"{video_title}.mp4"
                     st.download_button(
-                        label="📥 Download Video",
+                        label="💾 Save Video",
                         data=download_data,
                         file_name=filename,
                         mime="video/mp4"
