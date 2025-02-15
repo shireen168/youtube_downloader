@@ -1,21 +1,17 @@
 import os
-import shutil
 import tempfile
 import time
-import tkinter as tk
-from tkinter import filedialog
 from pathlib import Path
 import streamlit as st
 import yt_dlp
 
 # Constants
+VIDEO_FORMATS = [("MP4 files", "*.mp4")]
 DEFAULT_DOWNLOAD_DIR = str(Path.home() / "Downloads")
-VIDEO_FORMATS = [("MP4 files", "*.mp4"), ("All files", "*.*")]
+
+# Custom CSS
 CUSTOM_CSS = """
-    <style>
-    .stProgress > div > div > div > div {
-        background-color: #ff0000;
-    }
+<style>
     .stop-button {
         background-color: #ff4b4b !important;
         color: white !important;
@@ -24,74 +20,22 @@ CUSTOM_CSS = """
     </style>
 """
 
-
 def init_session_state():
     """Initialize Streamlit session state variables."""
     if "downloading" not in st.session_state:
         st.session_state.downloading = False
-    if "download_path" not in st.session_state:
-        st.session_state.download_path = DEFAULT_DOWNLOAD_DIR
-    if "tk_root" not in st.session_state:
-        st.session_state.tk_root = None
+    if "download_data" not in st.session_state:
+        st.session_state.download_data = None
 
 
 def setup_page():
     """Configure the Streamlit page settings."""
     st.set_page_config(
-        page_title="YouTube Video Downloader", page_icon="🎥", layout="centered"
+        page_title="YouTube Video Downloader",
+        page_icon="🎥",
+        layout="centered"
     )
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-
-
-def create_tk_root():
-    """Create and configure a new Tkinter root window."""
-    try:
-        if st.session_state.tk_root is not None:
-            st.session_state.tk_root.destroy()
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes("-topmost", True)
-        st.session_state.tk_root = root
-    except Exception:
-        pass
-
-
-def get_save_path(suggested_filename):
-    """
-    Get the save path for the downloaded video.
-
-    Args:
-        suggested_filename (str): Default filename for the video
-
-    Returns:
-        str or None: Selected file path or None if cancelled
-    """
-    try:
-        create_tk_root()
-        root = st.session_state.tk_root
-
-        if root is None:
-            default_path = Path(st.session_state.download_path) / suggested_filename
-            return str(default_path)
-
-        file_path = filedialog.asksaveasfilename(
-            initialdir=st.session_state.download_path,
-            initialfile=suggested_filename,
-            defaultextension=".mp4",
-            filetypes=VIDEO_FORMATS,
-            parent=root,
-        )
-
-        if file_path:
-            # Convert to Path object to handle Unicode paths properly
-            path_obj = Path(file_path)
-            st.session_state.download_path = str(path_obj.parent)
-            return str(path_obj)
-        return None
-    except Exception as e:
-        st.error(f"Error in file path handling: {str(e)}")
-        default_path = Path(st.session_state.download_path) / suggested_filename
-        return str(default_path)
 
 
 def create_progress_hook(progress_bar, status_text):
@@ -99,9 +43,10 @@ def create_progress_hook(progress_bar, status_text):
     temp_file_path = None
     video_title = None
     download_complete = False
+    download_data = None
 
     def progress_hook(d):
-        nonlocal temp_file_path, video_title, download_complete
+        nonlocal temp_file_path, video_title, download_complete, download_data
 
         if not st.session_state.downloading:
             raise Exception("Download cancelled by user")
@@ -127,21 +72,37 @@ def create_progress_hook(progress_bar, status_text):
 
             temp_file_path = d.get("filename")
             video_title = d.get("info_dict", {}).get("title", "video")
+
         elif d["status"] == "finished":
             status_text.text("✅ Download completed! Processing video...")
             progress_bar.progress(1.0)
             download_complete = True
+            
+            # Read the file data for download
+            if temp_file_path and os.path.exists(temp_file_path):
+                with open(temp_file_path, 'rb') as f:
+                    download_data = f.read()
+                st.session_state.download_data = download_data
 
-    return progress_hook, lambda: (temp_file_path, video_title, download_complete)
+    return progress_hook, lambda: (video_title, download_complete, download_data)
 
 
-def handle_download_error(error):
+def handle_download_error(error_msg):
     """Convert technical error messages to user-friendly ones."""
-    error_msg = str(error)
+    if "ERROR: No video formats found" in error_msg:
+        return "Could not find any video formats. Please check if the URL is correct."
     if "HTTP Error 404" in error_msg:
         return "Video not found. Please check if the URL is correct."
+    if "HTTP Error 403" in error_msg:
+        return "Access denied. This video might be private or region-restricted."
+    if "Incomplete data received" in error_msg:
+        return "Download failed due to network issues. Please try again."
+    if "Unable to download webpage" in error_msg:
+        return "Could not access YouTube. Please check your internet connection."
     if "Video unavailable" in error_msg:
-        return "This video is not available. It might be private or deleted."
+        return "This video is unavailable. It might have been removed or made private."
+    if "Sign in to confirm your age" in error_msg:
+        return "Age-restricted video. Unable to download."
     if "main thread" in error_msg:
         return None  # Special case: handle silently
     return f"Error: {error_msg}"
@@ -156,10 +117,11 @@ def download_video(url, stop_button_container):
         stop_button_container: Streamlit container for the stop button
 
     Returns:
-        tuple: (success, message, file_path)
+        tuple: (success, message, video_title, download_data)
     """
     try:
         st.session_state.downloading = True
+        st.session_state.download_data = None
 
         with tempfile.TemporaryDirectory() as temp_dir:
             progress_bar = st.progress(0)
@@ -187,36 +149,22 @@ def download_video(url, stop_button_container):
                 if str(e) == "Download cancelled by user":
                     status_text.text("❌ Download cancelled")
                     progress_bar.empty()
-                    return False, "Download cancelled by user.", None
+                    return False, "Download cancelled by user.", None, None
                 raise e
             finally:
                 st.session_state.downloading = False
 
-            temp_file_path, _, download_complete = get_status()
+            video_title, download_complete, download_data = get_status()
 
-            if download_complete and temp_file_path and os.path.exists(temp_file_path):
-                save_path = get_save_path(f"{video_title}.mp4")
-                
-                if save_path:
-                    # Convert to Path objects for proper Unicode handling
-                    save_path = Path(save_path)
-                    save_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(temp_file_path, str(save_path))
-                    
-                    # Update the file's timestamp to current time
-                    current_time = time.time()
-                    os.utime(str(save_path), (current_time, current_time))
-                    
-                    return True, "Video downloaded successfully!", str(save_path)
-                return False, "Download cancelled by user.", None
-            return False, "Download incomplete or file not found.", None
+            if download_complete and download_data:
+                return True, "Video downloaded successfully!", video_title, download_data
+            return False, "Download incomplete or file not found.", None, None
 
     except Exception as e:
-        st.session_state.downloading = False
-        error_msg = handle_download_error(e)
-        if error_msg is None:  # Special case for tkinter error
-            return True, "Video downloaded successfully!", temp_file_path
-        return False, error_msg, None
+        error_msg = handle_download_error(str(e))
+        if error_msg:
+            return False, error_msg, None, None
+        return False, str(e), None, None
 
 
 def render_ui():
@@ -226,7 +174,7 @@ def render_ui():
         """
         Download your favorite YouTube videos easily!
         Just paste the video URL below and press Enter or click Download.
-        You'll be prompted to choose where to save the file.
+        The video will be available for download after processing.
         """
     )
 
@@ -272,12 +220,20 @@ def main():
         if not url:
             st.error("Please enter a YouTube URL!")
         else:
-            success, message, file_path = download_video(url, stop_button_container)
+            success, message, video_title, download_data = download_video(url, stop_button_container)
             if success:
                 st.success(message)
                 st.balloons()  # Celebration effect!
-                if file_path:
-                    st.info(f"📁 File saved at: {file_path}")
+                
+                # Create download button for the video
+                if download_data and video_title:
+                    filename = f"{video_title}.mp4"
+                    st.download_button(
+                        label="📥 Download Video",
+                        data=download_data,
+                        file_name=filename,
+                        mime="video/mp4"
+                    )
             else:
                 st.error(message)
 
