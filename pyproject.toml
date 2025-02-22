@@ -10,6 +10,7 @@ yt-dlp = "^2024.11.18"
 tqdm = "^4.66.1"
 tk = "^0.1.0"
 streamlit = "^1.31.1"
+ffmpeg-python = "^0.2.0"
 
 [build-system]
 requires = ["poetry-core"]
