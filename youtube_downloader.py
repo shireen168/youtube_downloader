@@ -102,7 +102,9 @@ def init_session_state():
 
 def setup_page():
     """Configure the Streamlit page settings."""
-    st.set_page_config(page_title="YouTube Downloader", page_icon="", layout="centered")
+    st.set_page_config(
+        page_title="YouTube Downloader", page_icon="▶️", layout="centered"
+    )
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 
@@ -249,10 +251,16 @@ def render_header():
     """Render the application header with description."""
     st.markdown(
         """
-    ### Transform YouTube Videos into MP3/MP4 Files
-    This tool allows you to easily download YouTube videos in either video (MP4) or audio (MP3) format.
-    Simply paste the video URL below and choose your preferred format.
-    """
+    <h1 style='text-align: center; margin-bottom: 1rem;'>
+        <span style='font-size: 1.5em; margin-right: 10px;'>▶️</span>
+        YouTube Downloader
+    </h1>
+    <div style='margin-bottom: 2rem;'>
+        This tool allows you to easily download YouTube videos in either video (MP4) or audio (MP3) format.
+        Simply paste the video URL below and choose your preferred format.
+    </div>
+    """,
+        unsafe_allow_html=True
     )
 
 
