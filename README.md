@@ -15,11 +15,11 @@ A modern Streamlit application to download YouTube videos and playlists using yt
 
 ```
 youtube_downloader/
-├── main.py          # Application entry point
-├── app.py           # Streamlit UI components and layout
-├── config.py        # Configuration settings and styling
-├── yt_video_handler.py  # YouTube download functionality
-└── requirements.txt # Project dependencies
+├── youtube_downloader.py  # Application entry point
+├── app.py                 # Streamlit UI components and layout
+├── config.py             # Configuration settings and styling
+├── yt_video_handler.py   # YouTube download functionality
+└── requirements.txt      # Project dependencies
 ```
 
 ## Prerequisites
@@ -44,7 +44,7 @@ poetry install
 
 1. Run the application:
 ```bash
-poetry run streamlit run main.py
+poetry run streamlit run youtube_downloader.py
 ```
 
 2. Open your web browser to the displayed URL (typically http://localhost:8501)
@@ -68,7 +68,7 @@ To modify the application:
 - UI components are in `app.py`
 - Download logic is in `yt_video_handler.py`
 - Configuration settings are in `config.py`
-- Main entry point is `main.py`
+- Main entry point is `youtube_downloader.py`
 
 ## Contributing
 
