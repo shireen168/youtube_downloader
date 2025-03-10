@@ -10,15 +10,21 @@ DEFAULT_DOWNLOAD_DIR = str(Path.home() / "Downloads")
 # Format configurations
 FORMAT_CONFIGS = {
     "mp4": {
-        "format": "best",
-        "postprocessors": [],
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "postprocessors": [{
+            "key": "FFmpegVideoConvertor",
+            "preferedformat": "mp4",
+        }],
+        "merge_output_format": "mp4",
         "extract_flat": "in_playlist",
         "ignoreerrors": True,
         "nooverwrites": True,
-        "playlist": True
+        "playlist": True,
+        "writethumbnail": False,
+        "writesubtitles": False,
     },
     "mp3": {
-        "format": "best",
+        "format": "bestaudio/best",
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
@@ -29,7 +35,9 @@ FORMAT_CONFIGS = {
         "extract_flat": "in_playlist",
         "ignoreerrors": True,
         "nooverwrites": True,
-        "playlist": True
+        "playlist": True,
+        "writethumbnail": False,
+        "writesubtitles": False,
     },
 }
 
