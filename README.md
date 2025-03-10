@@ -15,9 +15,9 @@ A modern Streamlit application to download YouTube videos and playlists using yt
 
 ```
 youtube_downloader/
+├── main.py          # Application entry point
 ├── app.py           # Streamlit UI components and layout
 ├── config.py        # Configuration settings and styling
-├── main.py         # Application entry point
 ├── yt_video_handler.py  # YouTube download functionality
 └── requirements.txt # Project dependencies
 ```

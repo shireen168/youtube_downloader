@@ -14,16 +14,8 @@ class UIManager:
     def __init__(self):
         """Initialize the UI manager."""
         self.downloader = YouTubeDownloader()
-        self.setup_page()
-        self.init_session_state()
-
-    @staticmethod
-    def setup_page():
-        """Configure the Streamlit page settings."""
-        st.set_page_config(
-            page_title="YouTube Downloader", page_icon="▶️", layout="centered"
-        )
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+        self.init_session_state()
 
     @staticmethod
     def init_session_state():
