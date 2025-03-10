@@ -6,6 +6,7 @@ import zipfile
 from typing import Tuple, Optional, Callable
 
 import yt_dlp
+import streamlit as st
 
 from config import FORMAT_CONFIGS
 
@@ -19,6 +20,31 @@ class YouTubeDownloader:
         self.downloading = False
         self.current_video = ""
         self.total_videos = 0
+        # Ensure temp directory exists
+        self.temp_dir = tempfile.mkdtemp()
+        os.makedirs(self.temp_dir, exist_ok=True)
+
+    def __del__(self):
+        """Cleanup temporary files."""
+        try:
+            if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
+                for root, dirs, files in os.walk(self.temp_dir, topdown=False):
+                    for name in files:
+                        try:
+                            os.remove(os.path.join(root, name))
+                        except:
+                            pass
+                    for name in dirs:
+                        try:
+                            os.rmdir(os.path.join(root, name))
+                        except:
+                            pass
+                try:
+                    os.rmdir(self.temp_dir)
+                except:
+                    pass
+        except:
+            pass
 
     @staticmethod
     def is_playlist_url(url: str) -> bool:
@@ -127,84 +153,100 @@ class YouTubeDownloader:
             self.downloading = True
             is_playlist = self.is_playlist_url(url)
 
-            with tempfile.TemporaryDirectory() as temp_dir:
-                progress_hook, get_download_info = self.create_progress_hook(
-                    progress_bar, status_text
-                )
+            progress_hook, get_download_info = self.create_progress_hook(
+                progress_bar, status_text
+            )
 
-                format_config = FORMAT_CONFIGS[format_type]
-                
-                # Configure yt-dlp options
-                ydl_opts = {
-                    "format": format_config["format"],
-                    "outtmpl": os.path.join(temp_dir, "%(title)s.%(ext)s"),
-                    "progress_hooks": [progress_hook],
-                    "postprocessors": format_config["postprocessors"],
-                    "extract_flat": format_config.get("extract_flat"),
-                    "ignoreerrors": format_config.get("ignoreerrors", True),
-                    "nooverwrites": format_config.get("nooverwrites", True),
-                    "quiet": True,
-                    "no_warnings": True
-                }
+            format_config = FORMAT_CONFIGS[format_type]
+            
+            # Configure yt-dlp options with better error handling
+            ydl_opts = {
+                "format": format_config["format"],
+                "outtmpl": os.path.join(self.temp_dir, "%(title)s.%(ext)s"),
+                "progress_hooks": [progress_hook],
+                "postprocessors": format_config["postprocessors"],
+                "extract_flat": format_config.get("extract_flat"),
+                "ignoreerrors": True,  # Don't stop on download errors
+                "nooverwrites": True,  # Don't overwrite files
+                "quiet": True,
+                "no_warnings": True,
+                "nocheckcertificate": True,  # Skip HTTPS certificate validation
+                "socket_timeout": 30,  # Increase timeout
+                "retries": 10,  # Number of retries for http/download
+                "fragment_retries": 10,  # Number of retries for ts fragments
+                "hls_prefer_native": True,  # Use native HLS downloader
+            }
 
-                if is_playlist:
-                    # For playlists, we want to download all videos
-                    ydl_opts.update({
-                        "extract_flat": False,  # We want full extraction for playlists
-                        "yes_playlist": True,
-                        "playlist_items": "1-50"  # Limit to first 50 videos for safety
-                    })
-                else:
-                    # For single videos, disable playlist features
-                    ydl_opts.update({
-                        "noplaylist": True
-                    })
+            if is_playlist:
+                # For playlists, we want to download all videos
+                ydl_opts.update({
+                    "extract_flat": False,  # We want full extraction for playlists
+                    "yes_playlist": True,
+                    "playlist_items": "1-50"  # Limit to first 50 videos for safety
+                })
+            else:
+                # For single videos, disable playlist features
+                ydl_opts.update({
+                    "noplaylist": True
+                })
 
-                try:
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        # Extract info first to get video/playlist details
-                        info = ydl.extract_info(url, download=False)
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    # Extract info first to get video/playlist details
+                    info = ydl.extract_info(url, download=False)
+                    
+                    if is_playlist:
+                        playlist_title = info.get('title', 'Playlist')
+                        self.total_videos = len(info.get('entries', []))
                         
-                        if is_playlist:
-                            playlist_title = info.get('title', 'Playlist')
-                            self.total_videos = len(info.get('entries', []))
-                            
-                            # Create a zip file for the playlist
-                            zip_path = os.path.join(temp_dir, f"{playlist_title}.zip")
-                            
-                            # Download the videos
-                            ydl.download([url])
-                            
-                            # Create zip file of downloaded content
-                            with zipfile.ZipFile(zip_path, 'w') as zipf:
-                                for file in os.listdir(temp_dir):
-                                    if file != os.path.basename(zip_path):  # Don't include the zip file itself
-                                        file_path = os.path.join(temp_dir, file)
-                                        zipf.write(file_path, file)
-                            
-                            # Read the zip file
-                            with open(zip_path, 'rb') as f:
-                                download_data = f.read()
-                            
-                            return True, "Playlist downloaded successfully", playlist_title, download_data
+                        # Create a zip file for the playlist
+                        zip_path = os.path.join(self.temp_dir, f"{playlist_title}.zip")
+                        
+                        # Download the videos
+                        ydl.download([url])
+                        
+                        # Create zip file of downloaded content
+                        with zipfile.ZipFile(zip_path, 'w') as zipf:
+                            for file in os.listdir(self.temp_dir):
+                                if file != os.path.basename(zip_path):  # Don't include the zip file itself
+                                    file_path = os.path.join(self.temp_dir, file)
+                                    zipf.write(file_path, os.path.basename(file_path))
+                        
+                        # Read the zip file
+                        with open(zip_path, 'rb') as f:
+                            download_data = f.read()
+                        
+                        return True, "✅ Playlist downloaded successfully!", playlist_title, download_data
+                    else:
+                        # Single video download
+                        ydl.download([url])
+                        video_title, download_complete, download_data = get_download_info()
+                        
+                        if download_complete and download_data:
+                            return True, "✅ Video downloaded successfully!", video_title, download_data
                         else:
-                            # Single video download
-                            ydl.download([url])
-                            video_title, download_complete, download_data = get_download_info()
-                            
-                            if download_complete and download_data:
-                                return True, "Video downloaded successfully", video_title, download_data
-                            else:
-                                return False, "Download incomplete or file not found.", None, None
+                            return False, "❌ Download incomplete or file not found.", None, None
 
-                except Exception as e:
-                    error_msg = self.handle_download_error(str(e))
-                    if error_msg:
-                        return False, error_msg, None, None
-                    raise  # Re-raise if it's not a handled error
+            except Exception as e:
+                error_msg = self.handle_download_error(str(e))
+                if error_msg:
+                    return False, f"❌ {error_msg}", None, None
+                raise  # Re-raise if no specific error message
 
         except Exception as e:
-            return False, str(e), None, None
+            error_msg = str(e)
+            if "Download cancelled by user" in error_msg:
+                return False, "❌ Download cancelled by user.", None, None
+            return False, f"❌ An error occurred: {error_msg}", None, None
 
         finally:
             self.downloading = False
+            # Cleanup temp files
+            try:
+                for file in os.listdir(self.temp_dir):
+                    try:
+                        os.remove(os.path.join(self.temp_dir, file))
+                    except:
+                        pass
+            except:
+                pass
