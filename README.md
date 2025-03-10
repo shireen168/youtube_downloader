@@ -1,10 +1,31 @@
 # YouTube Downloader
 
-A simple Python script to download YouTube videos using yt-dlp.
+A modern Streamlit application to download YouTube videos and playlists using yt-dlp.
+
+## Features
+
+- 📺 Download single videos or entire playlists
+- 🎵 Support for both MP4 (video) and MP3 (audio) formats
+- 📊 Real-time progress tracking with percentage and size display
+- 📦 Playlist downloads are automatically packaged as ZIP files
+- 🎨 Modern, user-friendly interface with emoji-enhanced buttons
+- ⚡ Fast downloads using yt-dlp
+
+## Project Structure
+
+```
+youtube_downloader/
+├── app.py           # Streamlit UI components and layout
+├── config.py        # Configuration settings and styling
+├── main.py         # Application entry point
+├── yt_video_handler.py  # YouTube download functionality
+└── requirements.txt # Project dependencies
+```
 
 ## Prerequisites
 
-- Python 3.x installed on your system
+- Python 3.x
+- Poetry (Python package manager)
 
 ## Setup Instructions
 
@@ -14,53 +35,45 @@ git clone https://github.com/shireen168/youtube_downloader.git
 cd youtube_downloader
 ```
 
-2. Create a virtual environment:
+2. Install dependencies using Poetry:
 ```bash
-python -m venv .venv
-```
-
-3. Activate the virtual environment:
-   - On Windows:
-   ```bash
-   .venv\Scripts\activate
-   ```
-   - On macOS/Linux:
-   ```bash
-   source .venv/bin/activate
-   ```
-
-4. Install required packages:
-```bash
-pip install yt-dlp
+poetry install
 ```
 
 ## Usage
 
-1. Make sure your virtual environment is activated (see step 3 above)
-
-2. Run the script:
+1. Run the application:
 ```bash
-python youtube_downloader.py
+poetry run streamlit run main.py
 ```
 
-3. When prompted, enter the YouTube URL of the video you want to download
+2. Open your web browser to the displayed URL (typically http://localhost:8501)
 
-4. The video will be downloaded to the current directory
+3. Enter a YouTube URL (video or playlist)
 
-## Features
+4. Select your preferred format (MP4 or MP3)
 
-- Downloads YouTube videos in the highest available quality
-- Simple command-line interface
-- Progress bar showing download status
-- Error handling for invalid URLs
+5. Click the Download button
 
-## Deactivating the Virtual Environment
+6. Once the download is complete, click "Save File" to save your video/audio
 
-When you're done using the downloader, you can deactivate the virtual environment by simply typing:
-```bash
-deactivate
-```
+## Development
 
-## Note
+The application is built with:
+- Streamlit for the web interface
+- yt-dlp for YouTube video processing
+- Poetry for dependency management
 
-The virtual environment (.venv folder) is specific to this project and can be safely deleted and recreated if needed. Just follow the setup instructions again to recreate it.
+To modify the application:
+- UI components are in `app.py`
+- Download logic is in `yt_video_handler.py`
+- Configuration settings are in `config.py`
+- Main entry point is `main.py`
+
+## Contributing
+
+Feel free to open issues or submit pull requests for any improvements.
+
+## License
+
+This project is open source and available under the MIT License.

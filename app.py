@@ -1,7 +1,8 @@
 """Streamlit UI manager for the YouTube Downloader."""
 
-import streamlit as st
 from typing import Optional, Tuple
+
+import streamlit as st
 
 from config import CUSTOM_CSS
 from yt_video_handler import YouTubeDownloader
@@ -20,9 +21,7 @@ class UIManager:
     def setup_page():
         """Configure the Streamlit page settings."""
         st.set_page_config(
-            page_title="YouTube Downloader",
-            page_icon="▶️",
-            layout="centered"
+            page_title="YouTube Downloader", page_icon="▶️", layout="centered"
         )
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
@@ -47,12 +46,16 @@ class UIManager:
     @staticmethod
     def show_success_message(message: str):
         """Display a custom styled success message."""
-        st.markdown(f'<div class="success-message">{message}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="success-message">{message}</div>', unsafe_allow_html=True
+        )
 
     @staticmethod
     def show_error_message(message: str):
         """Display a custom styled error message."""
-        st.markdown(f'<div class="error-message">{message}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="error-message">{message}</div>', unsafe_allow_html=True
+        )
 
     def render_header(self):
         """Render the application header."""
@@ -62,7 +65,9 @@ class UIManager:
             "Simply paste the video URL below and choose your preferred format."
         )
 
-    def handle_download(self, url: str) -> Tuple[bool, Optional[str], Optional[str], Optional[bytes]]:
+    def handle_download(
+        self, url: str
+    ) -> Tuple[bool, Optional[str], Optional[str], Optional[bytes]]:
         """Handle the download process and return results."""
         if not url:
             self.show_error_message("Please enter a YouTube URL")
@@ -79,10 +84,12 @@ class UIManager:
             url,
             st.session_state.selected_format,
             st.session_state.progress_placeholder,
-            st.session_state.status_placeholder
+            st.session_state.status_placeholder,
         )
 
-    def create_download_button(self, title: str, download_data: bytes, is_playlist: bool):
+    def create_download_button(
+        self, title: str, download_data: bytes, is_playlist: bool
+    ):
         """Create a download button with appropriate filename and mime type."""
         if is_playlist:
             filename = f"{title}.zip"
@@ -97,7 +104,7 @@ class UIManager:
             data=download_data,
             file_name=filename,
             mime=mime,
-            key="save_button"
+            key="save_button",
         )
 
     def render_ui(self):
@@ -106,19 +113,21 @@ class UIManager:
 
         with st.container():
             # URL input
-            url = st.text_input("Enter YouTube URL (video or playlist):", key="url_input")
+            url = st.text_input(
+                "Enter YouTube URL (video or playlist):", key="url_input"
+            )
 
             # Format selection
             format_col, progress_col = st.columns([1, 3])
-            
+
             with format_col:
                 st.session_state.selected_format = st.radio(
                     "Select Format:",
                     ["mp4", "mp3"],
                     horizontal=True,
-                    key="format_radio"
+                    key="format_radio",
                 )
-            
+
             with progress_col:
                 # Create placeholder for progress info
                 if "progress_placeholder" not in st.session_state:
@@ -128,11 +137,11 @@ class UIManager:
 
             # Download and Stop buttons
             download_col, stop_col = st.columns([3, 1])
-            
+
             with download_col:
                 if st.button("⬇️ Download", key="download_button", type="primary"):
                     success, message, title, download_data = self.handle_download(url)
-                    
+
                     if success and download_data:
                         is_playlist = self.downloader.is_playlist_url(url)
                         self.show_success_message(message)
@@ -149,7 +158,7 @@ class UIManager:
             st.markdown(
                 """
                 <div class="footer">
-                    <p>Made with ❤️ using Python and Streamlit</p>
+                    <p>Made with ❤️ by Shireen</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
